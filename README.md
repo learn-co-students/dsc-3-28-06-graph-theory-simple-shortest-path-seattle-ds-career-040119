@@ -2,57 +2,50 @@
 # Graph Theory: Simple and Shortest Paths
 
 ## Introduction
-In graph theory, a path in a graph is a finite or infinite sequence of edges which connect a sequence of vertices which, by most definitions, are all distinct from one another. In a directed graph, a directed path (sometimes called dipath[1]) is again a sequence of edges (or arcs) which connect a sequence of vertices, but with the added restriction that the edges all be directed in the same direction.
+
+In this lesson, you'll start to investigate transversing paths through networks! This has many useful applications such as finding the shortest path from one node to another. Path finding algorithms are central to all directions applications such as Google Maps, Waze, or Apple Maps. Additionally, the shortest path between two nodes also serves as an incredibly important distance metric between two nodes! This will then serve as a foundation for future discussions regarding node centrality, underlying analysis such as cliques in social circles, or bottleknecks in the diffussion of information.
 
 ## Objectives
 You will be able to:
-- Understand and explain simple paths and shortest paths
-- Calculate simple and shortest paths for undirected, directed and weighted graphs
-- Explain Dijkstra Algorithm and calculate the shortest path using this algorithm in networkx
+* Understand and explain simple paths and shortest paths
+* Calculate simple and shortest paths for undirected, directed and weighted graphs
+* Explain Dijkstra Algorithm and calculate the shortest path using this algorithm in networkx
+* Customize network visualizations
 
-## Simple and Shortest Paths
-![](path.gif)
-
-
-> __A simple path is a path with no repeated nodes.__
-
-[See NetworkX documentation for simple paths](https://networkx.github.io/documentation/latest/reference/algorithms/simple_paths.html?highlight=simple%20path).
-
-> __The shortest path between two nodes is a path with the minimum number of edges. The distance between any two nodes $u$ and $v$ of $G$, denoted $d_{G}(u,v)$, is the length of the shortest path between them.__ 
-
-[See NetworkX documentation for shortest paths](https://networkx.github.io/documentation/latest/reference/algorithms/shortest_paths.html?highlight=shortest%20path)
-
-NetworkX has high level functions for simple paths and shortest paths that accept directed, undirected and multigraphs and do the right thing. For instance, for directed graphs the paths have to follow the direction of the edges. We shall see how to calculate shortest paths for all different graphs in this lesson. 
-
-## Undirected Graphs
-
-NetworkX represents the paths as list of nodes, from that it's easy to get the edges that form the path. Let's create a simple undirected network in networkx. 
+## Importing Packages
 
 
 ```python
-# Create a cycle graph and add an extra node
-G = nx.cycle_graph(5)
-G.add_edge(0, 5)
-nx.draw(G, pos=nx.fruchterman_reingold_layout(G), with_labels=True)
-dict(G.degree())
+import networkx as nx
+import numpy as np
+%matplotlib inline
+```
+
+## Creating a [Small World] Network
+
+To start talking about paths and distances between nodes, it helps to have a network to discuss. Here's a quick generated network. This particular network will be a small world network, which you'll learn more about in some upcoming lessons.
+
+
+```python
+G = nx.navigable_small_world_graph(3, seed=3)
+G = nx.relabel_nodes(G, dict(zip(G.nodes, ["A", "B", "C", "D", "E", "F", "G", "H", "I"])))
+nx.draw(G, pos=nx.random_layout(G, seed=9), with_labels=True, node_color="#1cf0c7",
+        node_size=500, font_weight="bold", width=2, alpha=.8)
 ```
 
 
+![png](index_files/index_4_0.png)
 
 
-    {0: 3, 1: 2, 2: 2, 3: 2, 4: 2, 5: 1}
+## Retrieving Shortest Paths with NetworkX
 
+NetworkX contains easy methods for finding the shortest paths between nodes. Most require you to pass in the network, starting point, and ending node.
 
-
-
-![png](index_files/index_2_1.png)
-
-
-We can check if a path exists between different nodes of a graph.
+You can check if there is a path between two nodes:
 
 
 ```python
-nx.has_path(G, 0, 3)
+nx.has_path(G, "F", "G")
 ```
 
 
@@ -62,39 +55,25 @@ nx.has_path(G, 0, 3)
 
 
 
-Using `all_simple_paths()`, we can get . list of all possible simple paths from one node to another. 
+You can find the shortest path which returns a list of nodes roadmapping how to hop from the starting node to the destination node:
 
 
 ```python
-list(nx.all_simple_paths(G, 0, 3))
+nx.shortest_path(G, "F", "G")
 ```
 
 
 
 
-    [[0, 1, 2, 3], [0, 4, 3]]
+    ['F', 'I', 'G']
 
 
 
-The shortest path among all simple paths can be calculated as:
-
-
-```python
-nx.shortest_path(G, 0, 3)
-```
-
-
-
-
-    [0, 4, 3]
-
-
-
-We can calculate the total length of the shortest path, for undirected graphs, it is the number of hops. 
+Or you can directly access the lenght of the shortest path:
 
 
 ```python
-nx.shortest_path_length(G, 0, 3)
+nx.shortest_path_length(G, "F", "G")
 ```
 
 
@@ -104,275 +83,213 @@ nx.shortest_path_length(G, 0, 3)
 
 
 
-We can obtain the list of edges of a path from the list of nodes that NetworkX outputs as shown below:
+The algorithm underlying these methods is known as Dijkstra's algorithm. You'll take a look at how the algorithm itself works more in a moment. In the meantime, it's worth noting that the last two methods are also accessible under another method name paying homage to their creator:
+
+> Note: going forward, we will exclusively use the `nx.dijkstra...()` methods in lieu of the `nx.shortest_path...()` counterparts.
 
 
 ```python
-path = nx.shortest_path(G, 5, 3)
-path_edges = list(zip(path, path[1:]))
-print("nodes in path: {}".format(path))
-print("edges in path: {}".format(path_edges))
-```
-
-    nodes in path: [5, 0, 4, 3]
-    edges in path: [(5, 0), (0, 4), (4, 3)]
-
-
- You can also compute all shortest paths from a single source node
-
-
-
-```python
-nx.single_source_shortest_path(G, 0)
+nx.dijkstra_path(G, "F", "G")
 ```
 
 
 
 
-    {0: [0], 1: [0, 1], 2: [0, 1, 2], 3: [0, 4, 3], 4: [0, 4], 5: [0, 5]}
+    ['F', 'I', 'G']
 
 
-
-Similarly, we can calculate the shortest paths between each possible pair of nodes in the network
 
 
 ```python
-list(nx.all_pairs_shortest_path(G))
+nx.dijkstra_path_length(G, "F", "G")
 ```
 
 
 
 
-    [(0, {0: [0], 1: [0, 1], 2: [0, 1, 2], 3: [0, 4, 3], 4: [0, 4], 5: [0, 5]}),
-     (1, {0: [1, 0], 1: [1], 2: [1, 2], 3: [1, 2, 3], 4: [1, 0, 4], 5: [1, 0, 5]}),
-     (2,
-      {0: [2, 1, 0], 1: [2, 1], 2: [2], 3: [2, 3], 4: [2, 3, 4], 5: [2, 1, 0, 5]}),
-     (3,
-      {0: [3, 4, 0], 1: [3, 2, 1], 2: [3, 2], 3: [3], 4: [3, 4], 5: [3, 4, 0, 5]}),
-     (4, {0: [4, 0], 1: [4, 0, 1], 2: [4, 3, 2], 3: [4, 3], 4: [4], 5: [4, 0, 5]}),
-     (5,
-      {0: [5, 0],
-       1: [5, 0, 1],
-       2: [5, 0, 1, 2],
-       3: [5, 0, 4, 3],
-       4: [5, 0, 4],
-       5: [5]})]
+    2
 
 
 
-## Directed Graphs
-> __When edges of a graph have a specific direction showing a 'to-from' relationship, they are called directed graphs.__
+## Visualizing a Path
 
-Consider the example of Facebook and Twitter connections. When you add someone to your friend list on Facebook, you will also be added to their friend list. This is a two-way relationship and that connection graph will be a non-directed one. Whereas if you follow a person on Twitter, that person might not follow you back. This is a directed graph.
+Now that you've seen how to quickly seen how to use NetworkX to retrieve the shortest paths between nodes, let's take a look at how you can visualize said paths. For example, the shortest path between `F` and `G` looks like this:
+<img name="final_path_viz" src="images/path.png">
 
-<img src="dir.png" width=500>
-
-Here is how you would create a simple Directed graph in networkx. 
+## Accessing Edges
 
 
 ```python
-# Create a directed graph with DiGraph()
-import networkx as nx
-DG = nx.DiGraph()
-DG.add_edge('a','b')
-DG.add_edge('a','c')
-DG.add_edge('b','c')
-nx.draw(DG, with_labels=True)
-```
-
-
-![png](index_files/index_18_0.png)
-
-
-Let's use a graph generator to create a directed graph and see how we can calculate the paths between nodes. 
-
-
-
-```python
-D = nx.cycle_graph(5, create_using=nx.DiGraph())
-D.add_edge(0, 5)
-nx.draw(D, pos=nx.fruchterman_reingold_layout(D), with_labels=True)
-
-```
-
-
-![png](index_files/index_20_0.png)
-
-
-For directed graphs, we usually calculate indegree and outdegree to process a node, here is how you would calculate it.
-
-
-```python
-dict(D.in_degree()), dict(D.out_degree())
+G.edges
 ```
 
 
 
 
-    ({0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1}, {0: 2, 1: 1, 2: 1, 3: 1, 4: 1, 5: 0})
+    OutEdgeView([('A', 'B'), ('A', 'C'), ('B', 'A'), ('B', 'D'), ('B', 'E'), ('B', 'C'), ('C', 'A'), ('C', 'E'), ('C', 'G'), ('C', 'F'), ('D', 'B'), ('D', 'F'), ('D', 'D'), ('E', 'B'), ('E', 'C'), ('E', 'F'), ('E', 'H'), ('F', 'D'), ('F', 'E'), ('F', 'I'), ('G', 'C'), ('G', 'H'), ('G', 'B'), ('H', 'E'), ('H', 'G'), ('H', 'I'), ('I', 'F'), ('I', 'H'), ('I', 'G')])
 
 
 
-Similarly, we can calculate the successors and predecesors of nodes in a directed graph. This is again basedon the direction of the edge. 
+## Retrieving a specific Edge
+
+You can retrieve a specific edge similar to retrieving an item from a dictionary:
 
 
 ```python
-list(D.successors(0)), list(D.predecessors(0))
+G.edges[('F', 'E')]
 ```
 
 
 
 
-    ([1, 5], [4])
+    {}
 
 
 
-### Calculating paths in a directed graph 
-
-Let's see a few methods , as above , to see how path calculation changes from directed to undirected graphs. 
-
-
-__Remember the paths in a directed graph always follow the direction of edges i.e. arrows. We can not go in the opposite direction while calculating a path.__
-
+While the entry is uninformative (there are no weights and no properties set), the mere existence of a response (and not hitting a key error) indicates that the edge exists. For example, the following returns an error as there is no out edge from F to A:
 
 
 ```python
-A = 0
-B = 3
-print('Path exists between nodes:', nx.has_path(D, A, B))
-print ('All simple paths:' ,list(nx.all_simple_paths(D, A, B))) # only one this time - directed
-print ('Shortest path:', nx.shortest_path(D, A, B))
-print ('length of shortest path:', nx.shortest_path_length(D, A, B))
-```
-
-    Path exists between nodes: True
-    All simple paths: [[0, 1, 2, 3]]
-    Shortest path: [0, 1, 2, 3]
-    length of shortest path: 3
-
-
-We can find shortest path from a given node to all other nodes as shown below:
-
-
-```python
-nx.single_source_shortest_path(D, 0)
+G.edges[('F', 'A')]
 ```
 
 
+    ---------------------------------------------------------------------------
+
+    KeyError                                  Traceback (most recent call last)
+
+    <ipython-input-44-10f9dad37ea6> in <module>
+    ----> 1 G.edges[('F', 'A')]
+    
+
+    /Applications/anaconda3/lib/python3.7/site-packages/networkx/classes/reportviews.py in __getitem__(self, e)
+        928     def __getitem__(self, e):
+        929         u, v = e
+    --> 930         return self._adjdict[u][v]
+        931 
+        932     # EdgeDataView methods
 
 
-    {0: [0],
-     1: [0, 1],
-     2: [0, 1, 2],
-     3: [0, 1, 2, 3],
-     4: [0, 1, 2, 3, 4],
-     5: [0, 5]}
+    KeyError: 'A'
 
 
-
-Or, the shortest paths between all possible pairs, considering the direction of edges. 
+## Retrieving Outbound Connections for a Given Node
 
 
 ```python
-list(nx.all_pairs_shortest_path(D))
+G['F']
 ```
 
 
 
 
-    [(0,
-      {0: [0],
-       1: [0, 1],
-       2: [0, 1, 2],
-       3: [0, 1, 2, 3],
-       4: [0, 1, 2, 3, 4],
-       5: [0, 5]}),
-     (1,
-      {0: [1, 2, 3, 4, 0],
-       1: [1],
-       2: [1, 2],
-       3: [1, 2, 3],
-       4: [1, 2, 3, 4],
-       5: [1, 2, 3, 4, 0, 5]}),
-     (2,
-      {0: [2, 3, 4, 0],
-       1: [2, 3, 4, 0, 1],
-       2: [2],
-       3: [2, 3],
-       4: [2, 3, 4],
-       5: [2, 3, 4, 0, 5]}),
-     (3,
-      {0: [3, 4, 0],
-       1: [3, 4, 0, 1],
-       2: [3, 4, 0, 1, 2],
-       3: [3],
-       4: [3, 4],
-       5: [3, 4, 0, 5]}),
-     (4,
-      {0: [4, 0],
-       1: [4, 0, 1],
-       2: [4, 0, 1, 2],
-       3: [4, 0, 1, 2, 3],
-       4: [4],
-       5: [4, 0, 5]}),
-     (5, {5: [5]})]
+    AtlasView({'D': {}, 'E': {}, 'I': {}})
 
 
 
-## Weighted Graphs
-
-For weighted graphs the definition of shortest path considers edge weights. The shortest path is the path with minium total weight, and the path length is the sum of edge weights. This implies that the **shortest weighted path does not necessary has less edges than an alternative path**.
-
-For computing weighted shortest paths you have to pass a a keyword argument the name of the edge attribute used as weight. Let's create a simple graph and assign some random weights to its edges 
+> **Warning:** Some of the edges in the network graph are difficult to see as they overlap or can be running through other nodes. For example, note from the display below how node C is actually connected to nodes A and G! These edges are virtually impossible to notice with the current drawing of the graph.
 
 
 ```python
-# Create a Weighted Graph 
-W = nx.Graph()
-W.add_edge('a', 'b', weight=0.3)
-W.add_edge('b', 'c', weight=0.5)
-W.add_edge('a', 'c', weight=2.0)
-W.add_edge('c', 'd', weight=1.0)
-pos = nx.fruchterman_reingold_layout(W)
-nx.draw(W, pos=pos, with_labels=True)
-nx.draw_networkx_edge_labels(W, pos, edge_labels=nx.get_edge_attributes(W, 'weight'))
+G['C']
 ```
 
 
 
 
-    {('a', 'b'): Text(0.498464,0.422644,'0.3'),
-     ('a', 'c'): Text(-0.0781383,0.276696,'2.0'),
-     ('b', 'c'): Text(0.423398,0.0785256,'0.5'),
-     ('c', 'd'): Text(-0.498464,-0.422644,'1.0')}
+    AtlasView({'A': {}, 'E': {}, 'G': {}, 'F': {}})
 
 
 
-
-![png](index_files/index_33_1.png)
-
-
-Most of the methods shown above can be applied to all types of graphs. For weighted graphs, the associated weight plays an important role in defining the shortest path. Let's see it through some methods shown below:
+## Coloring Edges
 
 
 ```python
-print ('Shortest path between nodes a and d with respect to hops:',nx.shortest_path(W, 'a', 'd'))
-print ('Length of the shortest path:',nx.shortest_path_length(W, 'a', 'd'))
-print ('Shortest path between nodes a and d with respect to edge weight:',nx.shortest_path(W, 'a', 'd',weight='weight'))
-print ('Length of the shortest path:',nx.shortest_path_length(W, 'a', 'd',weight='weight'))
+colors = []
+for edge in G.edges:
+#     print(type(edge), edge) #To learn more about what's happening, uncomment this line (warning: verbose printout!)
+    if edge[0] == "F":
+        colors.append("#ffd43d")
+    else:
+        colors.append("black")
+nx.draw(G, pos=nx.random_layout(G, seed=9), with_labels=True, node_color="#1cf0c7",
+        node_size=500, font_weight="bold", width=2, alpha=.8, edge_color=colors)
 ```
 
-    Shortest path between nodes a and d with respect to hops: ['a', 'c', 'd']
-    Length of the shortest path: 2
-    Shortest path between nodes a and d with respect to edge weight: ['a', 'b', 'c', 'd']
-    Length of the shortest path: 1.8
+
+![png](index_files/index_27_0.png)
 
 
-So we see although a path may have a less hops from source to destination, the weights associated with edges may help us decide a better path to allow , say , higher influence. 
+Hmmm, well this isn't ideal. Note that the node from F to I is extremely hard to see! It's covered up by the edge from I to F. As a hacky little workaround, you can redraw the specific edges in question.
+
+
+```python
+nx.draw_networkx_edges(G, nx.random_layout(G, seed=9), [e for e in G.edges() if e[0]=="F"], edge_color="#ffd43d")
+```
+
+
+
+
+    [<matplotlib.patches.FancyArrowPatch at 0xa24fb0cc0>,
+     <matplotlib.patches.FancyArrowPatch at 0xa24fb0978>,
+     <matplotlib.patches.FancyArrowPatch at 0xa24fb0fd0>]
+
+
+
+
+![png](index_files/index_29_1.png)
+
+
+Overlaying these on the entire graph:
+
+
+```python
+nx.draw(G, pos=nx.random_layout(G, seed=9), with_labels=True, node_color="#1cf0c7",
+        node_size=500, font_weight="bold", width=2, alpha=.8, edge_color="black")
+nx.draw_networkx_edges(G, edgelist=[e for e in G.edges() if e[0]=="F"], pos=nx.random_layout(G, seed=9),
+                       width=3, edge_color="#ffd43d");
+```
+
+
+![png](index_files/index_31_0.png)
+
+
+
+```python
+nx.draw(G, pos=nx.random_layout(G, seed=9), with_labels=True, node_color="#1cf0c7",
+        node_size=500, font_weight="bold", width=2, alpha=.8)
+nx.draw_networkx_edges(G, nx.random_layout(G, seed=9), width=3,
+                       edgelist=[("F", "I"), ("I","G")], edge_color="#ffd43d");
+```
+
+
+![png](index_files/index_32_0.png)
+
+
+## Under the Hood: Dijkstra's Algorithm
+
+Dijkstra's algorithm is essentially a depth based search. It commences at the starting node, spanning out to neighboring nodes and in turn visiting their neighbors in search of the destination. More formally, here's a general pseudocode outline for the algorithm:
+
+1. Mark all nodes as unvisited
+2. Set the distance of the starting node as 0, and $\infty$ for all other nodes
+3. Set the starting node as the current node
+4. Visit each of the neighbors of the current node
+    1. For each neighbor, calculate the distance to that node traveling through the current node
+    2. If this distance is less then the current distance recorded for that node, update the record accordingly
+5. Mark the current node as "visited"
+6. Of the unvisited nodes, set the one with the smallest distance to the current node
+7. Repeat steps 4 through 6 until one of the following:
+    1. The algorithm terminates when the destination node is the current node
+    2. Alternatively, if the the smallest distance of the unvisited nodes is $\infty$, then no path exists to the destination node. 
+
+> Note: Dijkstra's algorithm (and NetworkX's implementations demonstrated above) returns a single path. In many cases, there may be multiple paths which are tied for the shortest distance between two nodes. In such cases, it is arbitrary which path is returned.
+
+In the upcoming lab, you'll work to code this classic algorithm on your own! And if you're really up for the challenge, you can use your visualization knowledge to create a fun visualization of the algorithm like this:
 
 ## Additional Resources
-- https://www.cse.ust.hk/~dekai/271/notes/L10/L10.pdf
+
+[NetworkX Drawing Parameters](https://networkx.github.io/documentation/networkx-1.10/reference/generated/networkx.drawing.nx_pylab.draw_networkx.html)
 
 ## Summary 
 
-In lesson we talked about calculating the shortest path between a given set of nodes for different types of graph structures that we have seen thus far. Shortest path calculation comes in handy during a number of analyses activities while processing graph. Paths based on weights , hops or directions can provide a deeper insight into identifying the strength of relationship and amount of influence between nodes in a network. In the following lab, we shall see a simple dataset and calculate as well as visualize paths with networkx. 
+In this lesson, you started exploring fundamental concepts regarding paths in networks. This included practical examples using NetworkX's built in methods, and navigating the built in graph, node and edge objects within the package. Finally, you also started to preview the underlying theory to shortest paths, by looking at the classic Dijkstra's algorithm.
